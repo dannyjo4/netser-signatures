@@ -5,6 +5,12 @@ Network service signature detector.
 from typing import Optional, List, Dict, Any
 from .signatures import Signature, SignatureDatabase
 
+# Confidence score constants
+CONFIDENCE_PORT_ONLY = 0.7  # Port-based detection only
+CONFIDENCE_PATTERN_ONLY = 0.95  # Pattern-based detection only
+CONFIDENCE_PERFECT = 1.0  # Both port and pattern match
+CONFIDENCE_LOW = 0.5  # Fallback detection with low confidence
+
 
 class DetectionResult:
     """Result of a signature detection."""
@@ -70,7 +76,7 @@ class SignatureDetector:
         matches = self.database.find_by_port(port, protocol)
         
         for match in matches:
-            result.add_match(match, confidence=0.7)  # Port-only match has lower confidence
+            result.add_match(match, confidence=CONFIDENCE_PORT_ONLY)
         
         return result
     
@@ -92,17 +98,17 @@ class SignatureDetector:
         
         for match in pattern_matches:
             # Pattern match has high confidence
-            confidence = 0.95
+            confidence = CONFIDENCE_PATTERN_ONLY
             # If port also matches, increase confidence
             if port and match.matches_port(port, protocol):
-                confidence = 1.0
+                confidence = CONFIDENCE_PERFECT
             result.add_match(match, confidence=confidence)
         
         # If no pattern matches but we have a port, try port-based detection
         if not pattern_matches and port:
             port_matches = self.database.find_by_port(port, protocol)
             for match in port_matches:
-                result.add_match(match, confidence=0.5)
+                result.add_match(match, confidence=CONFIDENCE_LOW)
         
         return result
     
